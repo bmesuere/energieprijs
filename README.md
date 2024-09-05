@@ -11,11 +11,11 @@ In Home Assistant kan je deze waarden eenvoudig toevoegen op volgende manier:
 ```yaml
 rest:
   - resource: https://energie.bartm.be
-  sensor:
-    - name: "Injection Price"
-      unit_of_measurement: "€/kWh"
-      value_template: "{{ value_json.injection_price }}"
-    - name: Electricity Price
-      unit_of_measurement: "€/kWh"
-      value_template: "{{ value_json.electricity_price }}"
+    sensor:
+      - name: "Injection Price"
+        unit_of_measurement: "€/kWh"
+        value_template: "{{ value_json.injection_price }}"
+      - name: Electricity Price
+        unit_of_measurement: "€/kWh"
+        value_template: "{{ value_json.electricity_price }}"
 ```
