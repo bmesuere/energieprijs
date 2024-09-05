@@ -8,13 +8,12 @@ groen=1.21
 wkk=0.42
 bijdrage=0.2042
 accijns=5.0329
-price=$(echo "(1.06 * (3.3563 + ( 0.1140 * $epex_dam)) + $afname + $groen + $wkk + $bijdrage + $accijns) / 100" | bc -l --scale=4)
+price=$(echo "scale=4; (1.06 * (3.3563 + ( 0.1140 * $epex_dam)) + $afname + $groen + $wkk + $bijdrage + $accijns) / 100" | bc -l)
 
 # 0.0300 + 0.0612 * EPEXDAM
-injection=$(echo "(0.03 + ( 0.0612 * $epex_dam)) / 100" | bc -l --scale=4)
+injection=$(echo "scale=4; (0.03 + ( 0.0612 * $epex_dam)) / 100" | bc -l)
 
 echo "{"
 echo "\"electricity_price\": 0$price,"
 echo "\"injection_price\": 0$injection"
 echo "}"
-
