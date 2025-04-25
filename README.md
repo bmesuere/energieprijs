@@ -1,6 +1,6 @@
 # Energieprijs
 
-Dit script berekent de energie- en injectieprijs van (mijn) Flow contract bij Engie van de lopende maand. Aangezien er een gemiddelde van dagprijzen gebruikt wordt, is deze prijs pas op het einde van de maand definitief.
+Dit script berekent de energie- en injectieprijs van (mijn) EnergyVision contract van de lopende maand. Aangezien er een gemiddelde van dagprijzen gebruikt wordt, is deze prijs pas op het einde van de maand definitief.
 
 Alle taksen en accijnzen worden in rekening gebracht (voor Oost-Vlaanderen).
 
