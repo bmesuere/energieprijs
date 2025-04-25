@@ -3,12 +3,12 @@ epex_dam=$(curl --silent  "https://my.yuso.io/api/market-data/daPrices?agg=d&fro
 
 # EnergyVision
 # btw * (1.5 + 0.105 * EPEXDAM) + distributie + groene stroom + WKK + bijdrage + accijns
-afname=4.72
+distributie=6.2535825023
 groen=1.166
 wkk=0.41552
 bijdrage=0.2041666
 accijns=5.03288
-price=$(echo "scale=4; (1.06 * (1.5 + ( 0.105 * $epex_dam)) + $afname + $groen + $wkk + $bijdrage + $accijns) / 100" | bc -l)
+price=$(echo "scale=4; (1.06 * (1.5 + ( 0.105 * $epex_dam)) + $distributie + $groen + $wkk + $bijdrage + $accijns) / 100" | bc -l)
 
 # -1.5 + 0.06 * EPEXDAM
 injection=$(echo "scale=4; (-1.5 + ( 0.06 * $epex_dam)) / 100" | bc -l)
