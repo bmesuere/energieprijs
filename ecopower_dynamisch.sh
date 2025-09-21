@@ -24,10 +24,15 @@ fi
 
 curl --silent "https://my.yuso.io/api/market-data/daPrices?agg=h&from=${FROM}&to=${TO}" \
 | jq --argjson taxes "$taxes_cents" '
-    map({
-      time: .dtlt,
-      raw_price: (.price / 10),
-      consumption_price: ( (((.price * 0.00102) + 0.004) * 1.06 * 100) + $taxes ),
-      injection_price: ( ((.price * 0.00098) - 0.015) * 100 )
-    })
+  {
+    raw_data: [
+      .[] | { time: .dtlt, price: (.price / 10) }
+    ],
+    consumption_data: [
+      .[] | { time: .dtlt, price: ((((.price * 0.00102) + 0.004) * 1.06 * 100) + $taxes) }
+    ],
+    injection_data: [
+      .[] | { time: .dtlt, price: (((.price * 0.00098) - 0.015) * 100) }
+    ]
+  }
 '
