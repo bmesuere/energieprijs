@@ -49,8 +49,6 @@ fi
 # Note: €/MWh -> ct/kWh is a division by 10 ( *100 / 1000 = /10 ).
 
 export TZ="Europe/Brussels"
-echo "https://yuso.com/api/market-prices?type=day_ahead&start=${START}&end=${END}"
-exit
 curl --silent "https://yuso.com/api/market-prices?type=day_ahead&start=${START}&end=${END}" \
 | jq --argjson taxes "$taxes_cents" '
   # "2025-09-29T22:00:00.000000Z" -> "2025-09-29T22:00:00Z"
