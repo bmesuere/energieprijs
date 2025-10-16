@@ -22,14 +22,13 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
-      - run: "./engie.sh > engie.json"
       - run: "./ecopower_dynamisch.sh > ecopower.json"
-      - run: "cp engie.json index.html"
+      - run: "cp ecopower.json index.html"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: '.'
+          path: "."
 
   deploy:
     needs: build
