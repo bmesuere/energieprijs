@@ -49,7 +49,7 @@ json_tomorrow=$(
 
 # Merge, normalize, filter to *today in Brussels*, and emit 3 payloads
 printf '%s\n%s\n' "$json_today" "$json_tomorrow" \
-| jq --arg day "$today_local" --argjson taxes "$taxes_cents" '
+| jq --slurp --argjson taxes "$taxes_cents" '
   # Helpers ------------------------------------------------------------
   def to_local_str(ts):
     (ts | fromdateiso8601 | localtime | strftime("%Y-%m-%d %H:%M:%S"));
@@ -58,11 +58,10 @@ printf '%s\n%s\n' "$json_today" "$json_tomorrow" \
   def eurmwh_to_ctkwh(p): (p / 10.0);
 
   # Slurp both docs, concatenate all quarter-hours
-  .
+  map(select(. != null and . != ""))
   | map(.multiAreaEntries) | add
-  # Keep only entries that have a BE price (defensive) and that land on today (Brussels local)
+  # Keep only entries that have a BE price (defensive)
   | map(select(.entryPerArea and (.entryPerArea | has("BE"))))
-  | map(select(local_date(.deliveryStart) == $day))
   # Build the three views using your formulas
   | {
       raw_data: (map({
