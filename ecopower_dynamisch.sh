@@ -15,71 +15,72 @@ taxes_cents=$(
   echo "scale=6; (($groenestroomcertificaten + $wkk + $distributie + $bijdrage_energie + $accijns) * 1.06) * 100" | bc
 )
 
-# We fetch the full Brussels local day [00:00, 23:59:59.999] but in UTC for the API.
 BRUSSELS_TZ="Europe/Brussels"
 
-# --- Date range (UTC ISO-8601 with Z) ---------------------------------------
-# Start/end are midnight..23:59:59.999 of "today" in Brussels local time, expressed in UTC.
+
+# --- Date strings for the nord pool API (Brussels local) --------------------------
+# Nord Pool endpoint wants a date=YYYY-MM-DD in local market convention.
+# We query "today" and "tomorrow" then filter strictly to today's local wall-clock.
 
 if date -v +1d >/dev/null 2>&1; then
   # BSD/macOS
   today_local=$(TZ="$BRUSSELS_TZ" date +%Y-%m-%d)
   tomorrow_local=$(TZ="$BRUSSELS_TZ" date -v+1d +%Y-%m-%d)
-
-  start_epoch=$(TZ="$BRUSSELS_TZ" date -j -f "%Y-%m-%d %H:%M:%S" "$today_local 00:00:00" +%s)
-  end_epoch=$(TZ="$BRUSSELS_TZ" date -j -f "%Y-%m-%d %H:%M:%S" "$tomorrow_local 23:59:59" +%s)
-
-  START=$(date -u -r "$start_epoch" +%Y-%m-%dT%H:%M:%S.000Z)
-  END=$(date -u -r "$end_epoch"   +%Y-%m-%dT%H:%M:%S.999Z)
 else
   # GNU/Linux
-  start_epoch=$(TZ="$BRUSSELS_TZ" date -d 'today 00:00:00' +%s)
-  end_epoch=$(TZ="$BRUSSELS_TZ"   date -d 'tomorrow 23:59:59' +%s)
-
-  START=$(date -u -d "@$start_epoch" +%Y-%m-%dT%H:%M:%S.000Z)
-  END=$(date -u -d "@$end_epoch"    +%Y-%m-%dT%H:%M:%S.999Z)
+  today_local=$(TZ="$BRUSSELS_TZ" date +%Y-%m-%d)
+  tomorrow_local=$(TZ="$BRUSSELS_TZ" date -d 'tomorrow' +%Y-%m-%d)
 fi
 
 # --- Fetch + transform -------------------------------------------------------
-# New API provides 15-minute "day_ahead" values:
-#   https://yuso.com/api/market-prices?type=day_ahead&start=...&end=...
-# Field mapping:
-#   timestamp_utc (ISO-8601, UTC), amount (€/MWh)
-# We output time in Brussels local ("YYYY-MM-DD HH:MM:SS") and prices in ct/kWh.
-# Note: €/MWh -> ct/kWh is a division by 10 ( *100 / 1000 = /10 ).
 
-export TZ="Europe/Brussels"
-curl --silent "https://yuso.com/api/market-prices?type=day_ahead&start=${START}&end=${END}" \
-| jq --argjson taxes "$taxes_cents" '
-  # "2025-09-29T22:00:00.000000Z" -> "2025-09-29T22:00:00Z"
-  def norm_ts(ts): ts | sub("\\.\\d+Z$"; "Z");
+export TZ="$BRUSSELS_TZ"
 
-  # Convert UTC ISO → Brussels local wall time "YYYY-MM-DD HH:MM:SS"
-  def to_local(ts):
-    norm_ts(ts) | fromdateiso8601 | localtime | strftime("%Y-%m-%d %H:%M:%S");
+API_BASE="https://dataportal-api.nordpoolgroup.com/api/DayAheadPrices"
+Q_PARAMS="market=DayAhead&deliveryArea=BE&currency=EUR"
 
+# Fetch today & tomorrow (quietly fail with non-zero if HTTP error)
+json_today=$(
+  curl --fail --silent "${API_BASE}?date=${today_local}&${Q_PARAMS}"
+)
+json_tomorrow=$(
+  curl --fail --silent "${API_BASE}?date=${tomorrow_local}&${Q_PARAMS}"
+)
+
+# Merge, normalize, filter to *today in Brussels*, and emit 3 payloads
+printf '%s\n%s\n' "$json_today" "$json_tomorrow" \
+| jq --arg day "$today_local" --argjson taxes "$taxes_cents" '
+  # Helpers ------------------------------------------------------------
+  def to_local_str(ts):
+    (ts | fromdateiso8601 | localtime | strftime("%Y-%m-%d %H:%M:%S"));
+  def local_date(ts):
+    (ts | fromdateiso8601 | localtime | strftime("%Y-%m-%d"));
   def eurmwh_to_ctkwh(p): (p / 10.0);
 
-  map(select(.type == "day_ahead")) as $rows
-  |
-  {
-    raw_data: ($rows
-      | map({
-          time:  to_local(.timestamp_utc),
-          price: (eurmwh_to_ctkwh(.amount))
-        })
-    ),
-    consumption_data: ($rows
-      | map({
-          time:  to_local(.timestamp_utc),
-          price: ((((.amount * 0.00102) + 0.004) * 1.06 * 100) + $taxes)
-        })
-    ),
-    injection_data: ($rows
-      | map({
-          time:  to_local(.timestamp_utc),
-          price: (((.amount * 0.00098) - 0.015) * 100)
-        })
-    )
-  }
+  # Slurp both docs, concatenate all quarter-hours
+  .
+  | map(.multiAreaEntries) | add
+  # Keep only entries that have a BE price (defensive) and that land on today (Brussels local)
+  | map(select(.entryPerArea and (.entryPerArea | has("BE"))))
+  | map(select(local_date(.deliveryStart) == $day))
+  # Build the three views using your formulas
+  | {
+      raw_data: (map({
+        time:  to_local_str(.deliveryStart),
+        price: eurmwh_to_ctkwh(.entryPerArea.BE)
+      })),
+
+      consumption_data: (map({
+        time:  to_local_str(.deliveryStart),
+        # Your original: (((amount * 0.00102) + 0.004) * 1.06 * 100) + taxes
+        # Here, .entryPerArea.BE is €/MWh
+        price: ((((.entryPerArea.BE * 0.00102) + 0.004) * 1.06 * 100) + $taxes)
+      })),
+
+      injection_data: (map({
+        time:  to_local_str(.deliveryStart),
+        # Your original: (((amount * 0.00098) - 0.015) * 100)
+        price: (((.entryPerArea.BE * 0.00098) - 0.015) * 100)
+      }))
+    }
 '
