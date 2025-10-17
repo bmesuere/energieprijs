@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 13 * * *"
+    - cron: "7 */2 * * *"
 
 permissions:
   contents: read
@@ -21,8 +21,33 @@ jobs:
       id-token: write
       packages: read
     steps:
-      - uses: actions/checkout@v4
-      - run: "./ecopower_dynamisch.sh > ecopower.json"
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            EpexPredictor/requirements.txt
+
+      - name: Install Python dependencies
+        working-directory: EpexPredictor
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Generate BE forecast
+        working-directory: EpexPredictor
+        run: |
+          python predictor/model/pricepredictor.py > ../forecast.json
+
+      - name: Generate Ecopower prices
+        run: "./ecopower_dynamisch.sh > ecopower.json"
       - run: "cp ecopower.json index.html"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
