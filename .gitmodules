@@ -1,0 +1,3 @@
+[submodule "EpexPredictor"]
+	path = EpexPredictor
+	url = git@github.com:bmesuere/EpexPredictor.git
