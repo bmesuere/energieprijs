@@ -4,11 +4,11 @@ set -euo pipefail
 # --- Constants ---------------------------------------------------------------
 
 # Individual taxes (EUR/kWh)
-groenestroomcertificaten=0.011
-wkk=0.00392
-distributie=0.0589031
-bijdrage_energie=0.0019261
-accijns=0.04748
+groenestroomcertificaten=0.0110
+wkk=0.0039
+distributie=0.0589
+bijdrage_energie=0.0019
+accijns=0.0475
 
 # Sum taxes and add 6% VAT, then convert to cents/kWh
 taxes_cents=$(
