@@ -27,24 +27,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-          cache-dependency-path: |
-            EpexPredictor/requirements.txt
-
-      - name: Install Python dependencies
-        working-directory: EpexPredictor
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-
-      - name: Generate BE forecast
-        working-directory: EpexPredictor
-        run: |
-          python predictor/model/pricepredictor.py > ../forecast.json
 
       - name: Generate Ecopower prices
         run: "./ecopower_dynamisch.sh > ecopower.json"
