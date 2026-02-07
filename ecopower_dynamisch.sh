@@ -6,7 +6,7 @@ set -euo pipefail
 # Individual taxes (EUR/kWh)
 groenestroomcertificaten=0.0110
 wkk=0.0039
-distributie=0.0589
+distributie=0.0523
 bijdrage_energie=0.0019
 accijns=0.0475
 
