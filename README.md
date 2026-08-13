@@ -2,8 +2,8 @@
 
 Deze repository bevat
 - een script om de energieprijs van Ecopower te berekenen
-- een submodule die een voorspelling doet van de Belgische EPEX spotprijzen voor de komende dagen
-- een github action deze prijzen en voorspellingen te publiceren via github pages.
+- een script dat een voorspelling van de Belgische EPEX spotprijzen voor de komende dagen ophaalt en omrekent naar Ecopower-prijzen
+- een github action om deze prijzen en voorspellingen te publiceren via github pages.
 
 ## Ecopower prijs - dynamisch tarief
 
@@ -121,26 +121,19 @@ template:
           {{ (states('sensor.ecopower_injection_price') | float / 100) | round(5) }}
 ```
 
-## Spotprijs predictie
+## Spotprijs voorspelling
 
-De submodule `EpexPredictor` bevat een machine learning model dat de EPEX spotprijzen voor België voorspelt op basis van weersvoorspellingen. Het model is getraind met historische weerdata en prijsdata van EPEX. Voor meer informatie over de werking van het model, zie de README in de submodule.
+Het script in `epex_forecast.sh` haalt een voorspelling van de Belgische EPEX spotprijzen op via de gratis gehoste API van [EpexPredictor](https://github.com/b3nn0/EpexPredictor) (https://epexpredictor.batzill.com/). Dat is een LightGBM-model dat op basis van weersvoorspellingen, het ENTSO-E load forecast en gasprijzen de spotprijs tot 7 dagen vooruit voorspelt in kwartierresolutie (MAE ~1.8 ct/kWh voor België). De eigen fork [bmesuere/EpexPredictor](https://github.com/bmesuere/EpexPredictor) is gearchiveerd nu upstream België ondersteunt.
 
-Deze voorspellingen worden automatisch om de twee uur gegenereerd via een github action en gepubliceerd op https://energie.bartm.be/forecast.json.
+Het script rekent de voorspelde spotprijzen om naar Ecopower verbruiks- en injectieprijzen met dezelfde formules als `ecopower_dynamisch.sh` (de gedeelde constanten staan in `ecopower_constants.sh`). De output wordt om de twee uur gepubliceerd op https://energie.bartm.be/forecast.json, bewust als apart bestand zodat duidelijk is dat dit voorspellingen zijn en geen vastgestelde prijzen.
 
-In EVCC, een open-source EV laadcontroller, kan je deze voorspellingen gebruiken om slim te laden op basis van de verwachte energieprijzen. Je kan hiervoor de volgende configuratie toevoegen aan je `evcc.yaml` bestand. Je past wel best de constanten in de formules aan om je lokale belastingen, heffingen en andere kosten weer te geven.
+Het formaat is hetzelfde als dat van `ecopower.json` (met `raw_data`, `consumption_data` en `injection_data`), aangevuld met een `known_until` veld: prijzen vóór dat tijdstip zijn effectieve day-ahead marktprijzen, prijzen erna zijn modelvoorspellingen.
 
-```yaml
-tariffs:
-  grid:
-    type: custom
-    forecast:
-      source: http
-      uri: https://energie.bartm.be/forecast.json
-      jq: "map(.value = ((1.02 * (.value / 100) + 0.004 + 0.1232292) * 1.06)) | tostring"
-  feedin:
-    type: custom
-    forecast:
-      source: http
-      uri: https://energie.bartm.be/forecast.json
-      jq: "map(.value = (0.98 * (.value / 100) - 0.015)) | tostring"
+```json
+{
+  known_until: "2026-08-14 23:45:00",
+  raw_data: [...],
+  consumption_data: [...],
+  injection_data: [...]
+}
 ```

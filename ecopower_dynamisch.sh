@@ -3,17 +3,8 @@ set -euo pipefail
 
 # --- Constants ---------------------------------------------------------------
 
-# Individual taxes (EUR/kWh)
-groenestroomcertificaten=0.0110
-wkk=0.0039
-distributie=0.0523
-bijdrage_energie=0
-accijns=0.046
-
-# Sum taxes and add 6% VAT, then convert to cents/kWh
-taxes_cents=$(
-  echo "scale=6; (($groenestroomcertificaten + $wkk + $distributie + $bijdrage_energie + $accijns) * 1.06) * 100" | bc
-)
+# Tax constants and taxes_cents are shared with epex_forecast.sh
+source "$(dirname "$0")/ecopower_constants.sh"
 
 BRUSSELS_TZ="Europe/Brussels"
 
