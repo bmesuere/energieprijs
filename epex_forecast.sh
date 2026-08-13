@@ -46,7 +46,7 @@ curl --fail --silent "$API_URL" \
 
       injection_data: ($prices | map({
         time:  to_local_str(.startsAt),
-        price: ((ct_to_eurmwh(.total) * 0.00098) - 0.015) * 100
+        price: (((ct_to_eurmwh(.total) * 0.00098) - 0.015) * 100)
       }))
     }
 '
