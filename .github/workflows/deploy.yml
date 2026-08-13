@@ -21,15 +21,13 @@ jobs:
       id-token: write
       packages: read
     steps:
-      - name: Checkout with submodules
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
 
       - name: Generate Ecopower prices
         run: "./ecopower_dynamisch.sh > ecopower.json"
+      - name: Generate price forecast
+        run: "./epex_forecast.sh > forecast.json"
       - run: "cp ecopower.json index.html"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
